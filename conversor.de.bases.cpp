@@ -3,61 +3,59 @@
 
 using namespace std;
 
-// Convierte un carácter en su valor numérico
-int valor(char c)
+int caracterAEntero(char c)
 {
-    if (c >= '0' && c <= '9')
-        return c - '0';
-
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
     return -1;
 }
 
-
-// Convierte un valor numérico en carácter
-char caracter(int n)
+char enteroACaracter(int n)
 {
-    if (n < 10)
-        return char('0' + n);
-
+    if (n < 10) return char('0' + n);
     return char('A' + (n - 10));
 }
 
-
-// Convierte el número de la base original a decimal
-double aDecimal(string numero, int base)
+double aDecimal(string numero, int base, bool &error)
 {
     double resultado = 0;
-
-    // Busca la posición del punto decimal
     int punto = numero.find('.');
 
-    if (punto == -1)
+    if (punto == -1) 
         punto = (int)numero.length();
 
-
-    // Convierte la parte entera
+    // Parte entera
     for (int i = 0; i < punto; i++)
     {
-        int digito = valor(numero[i]);
+        int digito = caracterAEntero(numero[i]);
+
+        // Validación: revisa que el dígito sea válido y menor a la base de origen
+        if (digito == -1 || digito >= base)
+        {
+            cout << "\n[Error] El digito '" << numero[i] << "' no es valido para la base " << base << ".\n";
+            error = true;
+            return 0;
+        }
 
         resultado = resultado * base + digito;
     }
 
-
-    // Convierte la parte decimal
+    // Parte decimal
     if (numero.find('.') != string::npos)
     {
         double potencia = base;
 
         for (int i = punto + 1; i < (int)numero.length(); i++)
         {
-            int digito = valor(numero[i]);
+            int digito = caracterAEntero(numero[i]);
+
+            if (digito == -1 || digito >= base)
+            {
+                cout << "\n[Error] El digito '" << numero[i] << "' no es valido para la base " << base << ".\n";
+                error = true;
+                return 0;
+            }
 
             resultado = resultado + digito / potencia;
             potencia = potencia * base;
@@ -67,106 +65,79 @@ double aDecimal(string numero, int base)
     return resultado;
 }
 
-
-// Convierte un número decimal a la base elegida
 string desdeDecimal(double numero, int base)
 {
     string resultado = "";
-
     int entero = (int)numero;
 
-    if (entero == 0)
+    if (entero == 0) 
         resultado = "0";
 
-
-    // Convierte la parte entera mediante divisiones sucesivas
     while (entero > 0)
     {
         int residuo = entero % base;
-
-        resultado = caracter(residuo) + resultado;
-
+        resultado = enteroACaracter(residuo) + resultado;
         entero = entero / base;
     }
 
-
-    // Convierte la parte decimal mediante multiplicaciones sucesivas
     double decimal = numero - (int)numero;
 
     if (decimal > 0.000001)
     {
-        resultado = resultado + ".";
+        resultado += ".";
+        int limite = 0;
 
-        int contador = 0;
-
-        // Limita la cantidad de cifras decimales a 10
-        while (decimal > 0.000001 && contador < 10)
+        while (decimal > 0.000001 && limite < 8)
         {
-            decimal = decimal * base;
-
+            decimal *= base;
             int digito = (int)decimal;
-
-            resultado = resultado + caracter(digito);
-
-            decimal = decimal - digito;
-
-            contador++;
+            resultado += enteroACaracter(digito);
+            decimal -= digito;
+            limite++;
         }
     }
 
     return resultado;
 }
 
-
 int main()
 {
-    string numero;
+    string numInput;
     int baseOrigen, baseDestino;
-    double decimal;
+    bool huboError = false;
 
-    cout << "*************************************\n";
-    cout << "       CONVERSOR DE BASES\n";
-    cout << "*************************************\n";
+    cout << "=== CONVERSOR DE BASES NUMERICAS ===\n\n";
 
-    cout << "\nEste programa permite convertir numeros\n";
-    cout << "entre bases desde 2 hasta 16.\n";
-    cout << "Tambien permite numeros con decimales.\n";
+    cout << "Ingrese el numero: ";
+    cin >> numInput;
 
-    cout << "\nIngrese el numero: ";
-    cin >> numero;
-
-    cout << "Ingrese la base de origen (2 - 16): ";
+    cout << "Base de origen (2-16): ";
     cin >> baseOrigen;
 
-    cout << "Ingrese la base de destino (2 - 16): ";
+    cout << "Base a convertir (2-16): ";
     cin >> baseDestino;
 
-
-    // Comprueba que las bases estén dentro del límite permitido
-    if (baseOrigen < 2 || baseOrigen > 16 ||
-        baseDestino < 2 || baseDestino > 16)
+    // Validación de rango de bases
+    if (baseOrigen < 2 || baseOrigen > 16 || baseDestino < 2 || baseDestino > 16)
     {
-        cout << "\n*************************************\n";
-        cout << "ERROR: Las bases deben estar entre 2 y 16.\n";
-        cout << "*************************************\n";
-
+        cout << "\n[Error] Las bases deben estar en el rango de 2 a 16.\n";
         return 0;
     }
 
+    // Conversión a decimal
+    double valorDecimal = aDecimal(numInput, baseOrigen, huboError);
 
-    // Primero convierte el número a decimal
-    decimal = aDecimal(numero, baseOrigen);
+    // Si encontró un dígito no válido, detiene el programa
+    if (huboError) 
+        return 0;
 
-    // Después convierte el decimal a la base elegida
-    string resultado = desdeDecimal(decimal, baseDestino);
+    // Conversión a la base final
+    string resultadoFinal = desdeDecimal(valorDecimal, baseDestino);
 
-
-    cout << "\n*************************************\n";
-    cout << "Resultado:\n";
-    cout << numero << " (base " << baseOrigen << ") -> ";
-    cout << resultado << " (base " << baseDestino << ")\n";
-    cout << "*************************************\n";
+    cout << "\n-----------------------------------\n";
+    cout << numInput << " (base " << baseOrigen << ") = ";
+    cout << resultadoFinal << " (base " << baseDestino << ")\n";
+    cout << "-----------------------------------\n";
 
     return 0;
 }
-
